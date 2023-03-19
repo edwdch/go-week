@@ -2,6 +2,14 @@
 
 This is a project for generating a weekly report of my job.
 
+## Installation
+
+```bash
+git clone https://github.com/edwdch/go-week.git
+cd go-week
+go install
+```
+
 ## Usage
 
 ```bash
