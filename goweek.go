@@ -30,6 +30,11 @@ func main() {
 				Aliases: []string{"g"},
 				Usage:   "git add, commit and push the weekly report",
 			},
+			&cli.BoolFlag{
+				Name:    "last-week",
+				Aliases: []string{"l"},
+				Usage:   "generate the weekly report of last week",
+			},
 		},
 	}
 
@@ -40,6 +45,7 @@ func main() {
 
 func mainAction(ctx *cli.Context) error {
 	commit := ctx.Bool("git")
+	lastWeek := ctx.Bool("last-week")
 	if commit {
 		err := gitCommit()
 		if err != nil {
@@ -53,12 +59,12 @@ func mainAction(ctx *cli.Context) error {
 		return nil
 	}
 
-	content, err := fillTemplate(template)
+	content, err := fillTemplate(template, lastWeek)
 	if err != nil {
 		return err
 	}
 
-	file, err := writeToFile(content)
+	file, err := writeToFile(content, lastWeek)
 	if err != nil {
 		return err
 	}
@@ -129,7 +135,7 @@ type DateInfo struct {
 	Month     string
 }
 
-func getDateInfo() (DateInfo, error) {
+func getDateInfo(lastWeek bool) (DateInfo, error) {
 	loc, err := time.LoadLocation("Asia/Hong_Kong")
 	if err != nil {
 		return DateInfo{}, err
@@ -138,6 +144,10 @@ func getDateInfo() (DateInfo, error) {
 	var dateInfo DateInfo
 
 	now := time.Now().In(loc)
+	if lastWeek {
+		now = now.AddDate(0, 0, -7)
+	}
+
 	_, weekNo := now.ISOWeek()
 	dateInfo.Week = fmt.Sprintf("%02d", weekNo)
 
@@ -157,8 +167,8 @@ func getDateInfo() (DateInfo, error) {
 	return dateInfo, nil
 }
 
-func fillTemplate(tpl string) (string, error) {
-	dateInfo, err := getDateInfo()
+func fillTemplate(tpl string, lastWeek bool) (string, error) {
+	dateInfo, err := getDateInfo(lastWeek)
 	if err != nil {
 		return "", err
 	}
@@ -191,13 +201,13 @@ func readConfig() (GoWeekConfig, error) {
 	return goWeekConfig, nil
 }
 
-func writeToFile(content string) (string, error) {
+func writeToFile(content string, lastWeek bool) (string, error) {
 	goWeekConfig, err := readConfig()
 	if err != nil {
 		return "", err
 	}
 
-	dateInfo, err := getDateInfo()
+	dateInfo, err := getDateInfo(lastWeek)
 	if err != nil {
 		return "", err
 	}
@@ -233,7 +243,7 @@ func openFileWithTypora(file string) error {
 		return err
 	}
 
-	cmd := exec.Command(config.TyporaPath, file)
+	cmd := exec.Command(config.TyporaPath, "--fullscreen", file)
 	err = cmd.Start()
 	if err != nil {
 		return err
